@@ -1,0 +1,32 @@
+{
+	"branches": [
+	  "prod",
+	  {"name": "dev", "prerelease": true}
+	],
+	"plugins": [
+	  [
+		"@semantic-release/gitlab",
+		{
+				  "assets": [
+					  {
+						  "path": "CHANGELOG.md",
+						  "label": "Complete changelog"
+					  },
+					  {
+						  "path": "README.md",
+						  "label": "Release README"
+					  }
+				  ]
+		}
+	  ],
+		  "@semantic-release/commit-analyzer",
+		  "@semantic-release/release-notes-generator",
+		  [
+		"@semantic-release/changelog",
+		{
+		  "changelogFile": "CHANGELOG.md"
+		}
+	  ]
+	],
+	"preset": "conventionalcommits"
+  }

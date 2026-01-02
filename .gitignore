@@ -1,0 +1,14 @@
+.env.json
+.terraform*
+*.swp
+plan.file
+__pycache__
+poetry.lock
+**.venv/
+**plan_*.file
+**.zip
+**/dist/
+**/package_source/
+**.parquet
+terraform.tfvars
+backend.hcl

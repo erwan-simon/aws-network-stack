@@ -1,0 +1,72 @@
+variables:
+  PROJECT_NAME: poc
+  DOMAIN_NAME: network_platform
+  STAGE_NAME: $CI_COMMIT_REF_SLUG
+  TERRAFORM_CODE_PATH: iac
+  TARGET_REPO_NAME: "aws-network-stack"
+
+include:
+  - project: 'erwan.simon/devops-platform-ci-templates'
+    ref: 'v2.0.1'
+    file:
+      - 'base.yml'
+      - 'terraform.yml'
+      - 'mirror_to_github.yml'
+
+stages:
+  - init
+  - format
+  - security
+  - deploy
+  - destroy
+  - mirror_to_github
+
+destroy-nat-gateway:
+  stage: destroy
+  script:
+    - cd iac
+    - terraform init -backend-config="bucket=$TERRAFORM_BACKEND_BUCKET" -backend-config="dynamodb_table=$TERRAFORM_BACKEND_DYNAMODB"
+    - terraform workspace new $CI_COMMIT_BRANCH || terraform workspace select $CI_COMMIT_BRANCH
+    - terraform destroy -target aws_nat_gateway.instances -target aws_eip.nat_eips --auto-approve
+  when: manual
+  except:
+    refs:
+      - tags
+
+# pipeline schedules
+
+init_ecr_token_schedule:
+  stage: init
+  image:
+    name: public.ecr.aws/aws-cli/aws-cli
+    entrypoint: ["/usr/bin/env"]
+  script:
+    - export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+    - export AUTHENTICATION_TOKEN=$(echo "AWS:$(aws ecr get-login-password --region eu-west-1)" | base64 | tr -d "\n")
+    - echo 'DOCKER_AUTH_CONFIG={ "auths":{ "'${ACCOUNT_ID}.dkr.ecr.eu-west-1.amazonaws.com'":{ "auth":"'$AUTHENTICATION_TOKEN'" } } }' > build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+    expire_in: 1h
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+
+terraform_apply_schedule:
+  stage: deploy
+  script:
+    - cd iac
+    - terraform init -backend-config="bucket=$TERRAFORM_BACKEND_BUCKET" -backend-config="dynamodb_table=$TERRAFORM_BACKEND_DYNAMODB"
+    - terraform workspace new prod || terraform workspace select prod
+    - terraform apply -auto-approve
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_NAME == "create"'
+
+terraform_destroy_schedule:
+  stage: destroy
+  script:
+    - cd iac
+    - terraform init -backend-config="bucket=$TERRAFORM_BACKEND_BUCKET" -backend-config="dynamodb_table=$TERRAFORM_BACKEND_DYNAMODB"
+    - terraform workspace new prod || terraform workspace select prod
+    - terraform destroy -target aws_nat_gateway.instances -target aws_eip.nat_eips --auto-approve
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_NAME == "destroy"'
