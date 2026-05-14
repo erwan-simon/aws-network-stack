@@ -1,0 +1,2 @@
+bucket          = "<your-terraform-backend-bucket>"
+dynamodb_table  = "<your-terraform-backend-dynamodb-table>"

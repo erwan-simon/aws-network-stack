@@ -1,0 +1,2 @@
+project_name   = "<your-project-name>"
+git_repository = "https://gitlab.example.com/<org>/<repo>"
