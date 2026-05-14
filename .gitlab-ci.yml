@@ -7,7 +7,7 @@ variables:
 
 include:
   - project: 'erwan.simon/devops-platform-ci-templates'
-    ref: 'v2.0.1'
+    ref: 'v2.1.0'
     file:
       - 'base.yml'
       - 'terraform.yml'
